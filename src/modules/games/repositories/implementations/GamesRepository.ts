@@ -14,9 +14,9 @@ export class GamesRepository implements IGamesRepository {
   }
 
   async findByTitleContaining(param: string): Promise<Game[]> {
-    return this.repository
+    return await this.repository
       .createQueryBuilder('games')
-      .where("title like '%:param%'", { param })
+      .where("LOWER(games.title) LIKE LOWER(:param)", { param: `%${param}%` })
       .getMany()
       // Complete usando query builder
   }
@@ -28,7 +28,9 @@ export class GamesRepository implements IGamesRepository {
   async findUsersByGameId(id: string): Promise<User[]> {
     return await AppDataSource.getRepository(User)
       .createQueryBuilder('users')
-      .innerJoinAndSelect('users.id', 'users_games_games')
+      .innerJoin('users_games_games', 'ugg', 'ugg.usersId = users.id')
+      .innerJoin('games', 'g', 'g.id = ugg.gamesId')
+      .where(`g.id = '${id}'`)
       .getMany();
       // Complete usando query builder
   }
