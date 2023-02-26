@@ -1,5 +1,5 @@
 import {
-  Connection, createConnection, getRepository, Repository,
+  Connection, createConnection, DataSource, getRepository, Repository,
 } from 'typeorm';
 
 import { Game } from '../modules/games/entities/Game';
@@ -7,6 +7,8 @@ import { User } from '../modules/users/entities/User';
 
 import { UsersRepository } from '../modules/users/repositories/implementations/UsersRepository';
 import { GamesRepository } from '../modules/games/repositories/implementations/GamesRepository';
+import { Database } from '../database';
+import { AppDataSource } from '../../ormconfig';
 
 const usersSeed: User[] = [
   {
@@ -47,7 +49,8 @@ const gamesSeed: Pick<Game, 'title'>[] = [
 ];
 
 describe('Repositories', () => {
-  let connection: Connection;
+  let database = new Database()
+  let connection: DataSource;
 
   let ormUsersRepository: Repository<User>;
   let ormGamesRepository: Repository<Game>;
@@ -56,20 +59,18 @@ describe('Repositories', () => {
   let gamesRepository: GamesRepository;
 
   beforeAll(async () => {
-    connection = await createConnection();
+    connection = await database.createConnection();
 
-    ormUsersRepository = getRepository(User);
-    ormGamesRepository = getRepository(Game);
+    await connection.dropDatabase();
+
+    await connection.runMigrations();
+
+    ormUsersRepository = AppDataSource.getRepository(User);
+    ormGamesRepository = AppDataSource.getRepository(Game);
+    ormGamesRepository = AppDataSource.getRepository(Game);
 
     usersRepository = new UsersRepository();
     gamesRepository = new GamesRepository();
-
-    await connection.query('DROP TABLE IF EXISTS users_games_games');
-    await connection.query('DROP TABLE IF EXISTS users');
-    await connection.query('DROP TABLE IF EXISTS games');
-    await connection.query('DROP TABLE IF EXISTS migrations');
-
-    await connection.runMigrations();
 
     const [RL, TLOU, NFSMW, NFSP] = await ormGamesRepository.save(gamesSeed);
 
@@ -84,7 +85,7 @@ describe('Repositories', () => {
   });
 
   afterAll(async () => {
-    await connection.close();
+    await connection.undoLastMigration();
   });
 
   it("[UsersRepository] should be able to find user with games list by user's ID", async () => {
