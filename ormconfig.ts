@@ -9,7 +9,8 @@ export const AppDataSource = new DataSource({
   username: 'postgres',
   password: 'docker',
   database: 'queries_challenge',
-  synchronize: false,
+  synchronize: true,
+  dropSchema: true,
   logging: false,
   entities: [
       Game,
